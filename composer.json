@@ -1,11 +1,12 @@
 {
     "name": "b13/view-tracker-geoip",
-    "description": "Country enrichment for b13/view-tracker via GeoIP lookup (b13/magnets)",
     "type": "typo3-cms-extension",
+    "description": "Country enrichment for b13/view-tracker via GeoIP lookup (b13/magnets)",
     "license": "GPL-2.0-or-later",
     "require": {
-        "php": "^8.1",
-        "b13/view-tracker": "@dev",
+        "php": "^8.2",
+        "typo3/cms-core": "^13 || ^14",
+        "b13/view-tracker": "^1.0",
         "b13/magnets": "^3.0"
     },
     "autoload": {
