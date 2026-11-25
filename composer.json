@@ -1,22 +1,60 @@
 {
-    "name": "b13/view-tracker-geoip",
-    "type": "typo3-cms-extension",
-    "description": "Country enrichment for b13/view-tracker via GeoIP lookup (b13/magnets)",
-    "license": "GPL-2.0-or-later",
-    "require": {
-        "php": "^8.2",
-        "typo3/cms-core": "^13 || ^14",
-        "b13/view-tracker": "^1.0",
-        "b13/magnets": "^3.0"
-    },
-    "autoload": {
-        "psr-4": {
-            "B13\\ViewTrackerGeoip\\": "Classes/"
-        }
-    },
-    "extra": {
-        "typo3/cms": {
-            "extension-key": "view_tracker_geoip"
-        }
-    }
+	"name": "b13/view-tracker-geoip",
+	"type": "typo3-cms-extension",
+	"description": "Country enrichment for b13/view-tracker via a local MaxMind GeoIP database (b13/magnets)",
+	"license": "GPL-2.0-or-later",
+	"keywords": ["TYPO3", "extension", "statistics", "geoip", "country"],
+	"homepage": "https://b13.com",
+	"authors": [
+		{
+			"name": "b13 GmbH",
+			"homepage": "https://b13.com"
+		}
+	],
+	"support": {
+		"email": "typo3@b13.com",
+		"issues": "https://github.com/b13/view-tracker-geoip/issues",
+		"source": "https://github.com/b13/view-tracker-geoip"
+	},
+	"require": {
+		"php": "^8.2",
+		"typo3/cms-core": "^13.4 || ^14",
+		"b13/view-tracker": "^1.0",
+		"b13/magnets": "^3.0"
+	},
+	"require-dev": {
+		"typo3/testing-framework": "^9.1",
+		"phpunit/phpunit": "^11.3"
+	},
+	"extra": {
+		"typo3/cms": {
+			"extension-key": "view_tracker_geoip",
+			"version": "1.1.0",
+			"web-dir": ".Build/public",
+			"Package": {
+				"providesPackages": {}
+			}
+		}
+	},
+	"autoload": {
+		"psr-4": {
+			"B13\\ViewTrackerGeoip\\": "Classes/"
+		}
+	},
+	"autoload-dev": {
+		"psr-4": {
+			"B13\\ViewTrackerGeoip\\Tests\\": "Tests/"
+		}
+	},
+	"config": {
+		"vendor-dir": ".Build/vendor",
+		"bin-dir": ".Build/bin",
+		"allow-plugins": {
+			"typo3/class-alias-loader": true,
+			"typo3/cms-composer-installers": true
+		}
+	},
+	"scripts": {
+		"test:unit": "phpunit -c Build/phpunit/UnitTests.xml"
+	}
 }
