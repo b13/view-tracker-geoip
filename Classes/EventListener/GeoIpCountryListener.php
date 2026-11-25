@@ -12,37 +12,74 @@ declare(strict_types=1);
 
 namespace B13\ViewTrackerGeoip\EventListener;
 
-use B13\Magnets\IpLocation;
 use B13\ViewTracker\Event\EnrichTrackingDataEvent;
+use B13\ViewTrackerGeoip\Service\CountryLookup;
+use Psr\Http\Message\ServerRequestInterface;
+use Psr\Log\LoggerInterface;
 use TYPO3\CMS\Core\Attribute\AsEventListener;
+use TYPO3\CMS\Core\Http\NormalizedParams;
 
-#[AsEventListener]
+/**
+ * Runs after b13/view-tracker-cdn-country, so a country header set by the
+ * CDN wins and no lookup is needed.
+ */
+#[AsEventListener(
+    identifier: 'b13-view-tracker-geoip/country',
+    after: 'b13-view-tracker-cdn-country/country',
+)]
 final class GeoIpCountryListener
 {
+    private bool $failureLogged = false;
+
+    public function __construct(
+        private readonly CountryLookup $countryLookup,
+        private readonly LoggerInterface $logger,
+    ) {}
+
     public function __invoke(EnrichTrackingDataEvent $event): void
     {
         if ($event->trackingData->country !== '') {
             return;
         }
 
-        $ip = $event->request->getServerParams()['REMOTE_ADDR'] ?? '';
-        if ($ip === '' || $this->isLoopback($ip)) {
+        $ip = $this->getClientIp($event->request);
+        if ($ip === null) {
             return;
         }
 
         try {
-            $location = new IpLocation($ip);
-            $code = $location->getCountryCode();
-            if (is_string($code) && preg_match('/^[A-Z]{2}$/', $code) === 1) {
-                $event->trackingData->country = $code;
+            $code = $this->countryLookup->lookup($ip);
+        } catch (\Throwable $e) {
+            // Log once per process, not once per view. The IP address is
+            // deliberately not part of the message.
+            if (!$this->failureLogged) {
+                $this->logger->warning('GeoIP country lookup failed: {class}: {message}', [
+                    'class' => $e::class,
+                    'message' => $e->getMessage(),
+                ]);
+                $this->failureLogged = true;
             }
-        } catch (\Throwable) {
-            // GeoIP database missing or lookup failed — silently skip
+            return;
+        }
+
+        if (is_string($code) && preg_match('/^[A-Z]{2}$/', $code) === 1) {
+            $event->trackingData->country = $code;
         }
     }
 
-    private function isLoopback(string $ip): bool
+    /**
+     * The visitor's address as resolved by TYPO3, which honors the reverse
+     * proxy settings (reverseProxyIP, reverseProxyHeaderMultiValue).
+     * Private and reserved addresses have no country.
+     */
+    private function getClientIp(ServerRequestInterface $request): ?string
     {
-        return str_starts_with($ip, '127.') || $ip === '::1';
+        $normalizedParams = $request->getAttribute('normalizedParams');
+        $ip = $normalizedParams instanceof NormalizedParams
+            ? $normalizedParams->getRemoteAddress()
+            : (string)($request->getServerParams()['REMOTE_ADDR'] ?? '');
+
+        $valid = filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE);
+        return $valid === false ? null : $valid;
     }
 }
